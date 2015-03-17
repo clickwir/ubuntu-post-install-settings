@@ -26,7 +26,7 @@ GS="/usr/bin/gsettings"
 CCUL="com.canonical.Unity.lenses"
 
 if [ "$DOCONFIG" = "y" ]; then
-  echo -e "\n\nApplying recommended system settings...\n"
+  echo "\n\nApplying recommended system settings...\n"
 
   while [ -z "$ADMINUSER" ]; do read -p "Enter the name of the user you created in the GUI: " ADMINUSER; done
 
@@ -56,11 +56,6 @@ exit 0
   echo "[SeatDefaults]
 session-setup-script=/usr/local/bin/unity-privacy-hook.sh" > /mnt/etc/lightdm/lightdm.conf.d/20privacy-hook.conf
 
-fi
-
-echo -e "\nINSTALLATION COMPLETE\n"
-if [ "$DOCONFIG" = "y" ]; then
-  echo "Remember to run the post installation script after rebooting to finalise configuration."
 fi
 
 # Refresh the package list
