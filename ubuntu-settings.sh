@@ -27,34 +27,32 @@ CCUL="com.canonical.Unity.lenses"
 
 if [ "$DOCONFIG" = "y" ]; then
   echo "\n\nApplying recommended system settings...\n"
-
-  while [ -z "$ADMINUSER" ]; do read -p "Enter the name of the user you created in the GUI: " ADMINUSER; done
-
-  # Enable automatic updates
+  
+# Enable automatic updates
   echo "APT::Periodic::Update-Package-Lists \"1\";
 APT::Periodic::Unattended-Upgrade \"1\";
 APT::Periodic::AutocleanInterval \"7\";
-" >> /mnt/etc/apt/apt.conf.d/20auto-upgrades
-  chmod 644 /mnt/etc/apt/apt.conf.d/20auto-upgrades
+" >> /etc/apt/apt.conf.d/20auto-upgrades
+  chmod 644 /etc/apt/apt.conf.d/20auto-upgrades
 
   # Disable guest login
-  mkdir /mnt/etc/lightdm/lightdm.conf.d
+  mkdir /etc/lightdm/lightdm.conf.d
   echo "[SeatDefaults]
 allow-guest=false
-" > /mnt/etc/lightdm/lightdm.conf.d/50-no-guest.conf
+" > /etc/lightdm/lightdm.conf.d/50-no-guest.conf
 
   # A hook to disable online scopes in dash on login
-  echo '#!/bin/bash' > /mnt/usr/local/bin/unity-privacy-hook.sh
+  echo '#!/bin/bash' > /usr/local/bin/unity-privacy-hook.sh
   echo "gsettings set com.canonical.Unity.Lenses remote-content-search 'none'
 gsettings set com.canonical.Unity.Lenses disabled-scopes \"['more_suggestions-amazon.scope', 'more_suggestions-u1ms.scope', 'more_suggestions-populartracks.scope', 'music-musicstore.scope', 'more_suggestions-ebay.scope', 'more_suggestions-ubuntushop.scope', 'more_suggestions-skimlinks.scope']\"
 for USER in \`ls -1 /home\`; do
   chown \"\$USER\":\"\$USER\" /home/\"\$USER\"/.*
 done
 exit 0
-" >> /mnt/usr/local/bin/unity-privacy-hook.sh
-  chmod 755 /mnt/usr/local/bin/unity-privacy-hook.sh
+" >> /usr/local/bin/unity-privacy-hook.sh
+  chmod 755 /usr/local/bin/unity-privacy-hook.sh
   echo "[SeatDefaults]
-session-setup-script=/usr/local/bin/unity-privacy-hook.sh" > /mnt/etc/lightdm/lightdm.conf.d/20privacy-hook.conf
+session-setup-script=/usr/local/bin/unity-privacy-hook.sh" > /etc/lightdm/lightdm.conf.d/20privacy-hook.conf
 
 fi
 
