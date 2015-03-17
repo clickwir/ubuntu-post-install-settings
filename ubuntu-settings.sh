@@ -290,6 +290,24 @@ fi;
 # Some settings
 $GS set com.canonical.indicator.session suppress-logout-restart-shutdown true
 
+# Create dist-upgrade script in home dir.
+echo "echo ... Update [Start]" > ~/dist-upgrade
+echo "sudo apt-get update" >> ~/dist-upgrade
+echo "echo ... Update [Done]" >> ~/dist-upgrade
+echo "" >> ~/dist-upgrade
+echo "echo ... Clean [Start]" >> ~/dist-upgrade
+echo "sudo apt-get clean" >> ~/dist-upgrade
+echo "echo ... Clean [Done]" >> ~/dist-upgrade
+echo "" >> ~/dist-upgrade
+echo "echo ... Autoclean [Start]" >> ~/dist-upgrade
+echo "sudo apt-get autoclean" >> ~/dist-upgrade
+echo "echo ... Autoclean [Done]" >> ~/dist-upgrade
+echo "" >> ~/dist-upgrade
+echo "echo ... Dist-upgrade [Start]" >> ~/dist-upgrade
+echo "sudo apt-get dist-upgrade" >> ~/dist-upgrade
+echo "echo ... Dist-upgrade [Done]" >> ~/dist-upgrade
+chmod +x ~/dist-upgrade
+
 # Upgrade the system
 apt-get dist-upgrade -y
 
