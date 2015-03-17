@@ -10,35 +10,15 @@
 # From:
 # https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/413162/install.sh.txt
 
-if [[ $UID -ne 0 ]]; then
-	echo "This script needs to be run as root (with sudo)"
-	exit 1
+if ! [ $(id -u) = 0 ]; then
+   echo "This script needs to be run as root (with sudo)."
+   exit 1
+   else
+   echo "\nRunning as root.\n"
 fi
 
-function promptPassphrase {
-  PASS=""
-  PASSCONF=""
-  while [ -z "$PASS" ]; do
-    read -s -p "Passphrase: " PASS
-    echo ""
-  done
-  while [ -z "$PASSCONF" ]; do
-    read -s -p "Confirm passphrase: " PASSCONF
-    echo ""
-  done
-  echo ""
-}
-
-function getPassphrase {
-  promptPassphrase
-  while [ "$PASS" != "$PASSCONF" ]; do
-    echo "Passphrases did not match, try again..."
-    promptPassphrase
-  done
-}
-
 # Prompt for whether an SCM will be used or not
-echo -e "\nYou can have this script can perform configuration now.\n"
+echo -e "\nYou can have this script perform configuration now.\n"
 while [ "$DOCONFIG" != "y" -a "$DOCONFIG" != "n" ]; do read -p "Should the script perform configuration? [y/n]: " DOCONFIG; done
 
 # Some variables needed later.
