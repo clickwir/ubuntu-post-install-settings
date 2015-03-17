@@ -14,11 +14,11 @@ if ! [ $(id -u) = 0 ]; then
    echo "This script needs to be run as root (with sudo)."
    exit 1
    else
-   echo "\nRunning as root.\n"
+   echo "\n... Running as root.\n"
 fi
 
 # Prompt for whether an SCM will be used or not
-echo -e "\nYou can have this script perform configuration now.\n"
+echo "\nYou can have this script perform configuration now.\n"
 while [ "$DOCONFIG" != "y" -a "$DOCONFIG" != "n" ]; do read -p "Should the script perform configuration? [y/n]: " DOCONFIG; done
 
 # Some variables needed later.
@@ -26,22 +26,25 @@ GS="/usr/bin/gsettings"
 CCUL="com.canonical.Unity.lenses"
 
 if [ "$DOCONFIG" = "y" ]; then
-  echo "\n\nApplying recommended system settings...\n"
+  echo "\n\n... Applying recommended system settings...\n"
   
 # Enable automatic updates
+echo "\n... Enable automatic updates"
   echo "APT::Periodic::Update-Package-Lists \"1\";
 APT::Periodic::Unattended-Upgrade \"1\";
 APT::Periodic::AutocleanInterval \"7\";
 " >> /etc/apt/apt.conf.d/20auto-upgrades
   chmod 644 /etc/apt/apt.conf.d/20auto-upgrades
 
-  # Disable guest login
+# Disable guest login
+echo "\n... Disable guest login"
   mkdir /etc/lightdm/lightdm.conf.d
   echo "[SeatDefaults]
 allow-guest=false
 " > /etc/lightdm/lightdm.conf.d/50-no-guest.conf
 
-  # A hook to disable online scopes in dash on login
+# A hook to disable online scopes in dash on login
+echo "\n... A hook to disable online scopes in dash on login"
   echo '#!/bin/bash' > /usr/local/bin/unity-privacy-hook.sh
   echo "gsettings set com.canonical.Unity.Lenses remote-content-search 'none'
 gsettings set com.canonical.Unity.Lenses disabled-scopes \"['more_suggestions-amazon.scope', 'more_suggestions-u1ms.scope', 'more_suggestions-populartracks.scope', 'music-musicstore.scope', 'more_suggestions-ebay.scope', 'more_suggestions-ubuntushop.scope', 'more_suggestions-skimlinks.scope']\"
@@ -57,12 +60,15 @@ session-setup-script=/usr/local/bin/unity-privacy-hook.sh" > /etc/lightdm/lightd
 fi
 
 # Refresh the package list
+echo "\n...Refresh the package list"
 apt-get update
 
 # Install extra packages
+echo "\n... Install extra packages"
 apt-get install -y vim iotop dstat vlc openssh-server apparmor-profiles apparmor-utils
 
 # Set some AppArmor profiles to enforce mode
+echo "\n... Set some AppArmor profiles to enforce mode"
 aa-enforce /etc/apparmor.d/usr.bin.firefox
 aa-enforce /etc/apparmor.d/usr.sbin.avahi-daemon
 aa-enforce /etc/apparmor.d/usr.sbin.dnsmasq
@@ -71,6 +77,7 @@ aa-enforce /etc/apparmor.d/usr.sbin.rsyslogd
 
 
 # Turn off privacy-leaking aspects of Unity
+echo "\n... Turn off privacy-leaking aspects of Unity"
 $GS set "$CCUL" remote-content-search none
 $GS set "$CCUL" disabled-scopes \
     "['more_suggestions-amazon.scope', 'more_suggestions-u1ms.scope',
@@ -79,32 +86,17 @@ $GS set "$CCUL" disabled-scopes \
     'more_suggestions-skimlinks.scope']"
 echo "user-db:user" > /etc/dconf/profile/user
 echo "system-db:local" >> /etc/dconf/profile/user
-
 mkdir -p /etc/dconf/db/local.d
-
 echo "[com/canonical/unity/lenses]" > /etc/dconf/db/local.d/unity
 echo "remote-content-search=false" >> /etc/dconf/db/local.d/unity
-
 mkdir -p /etc/dconf/db/local.d/locks
-
 echo "/com/canonical/unity/lenses/remote-content-search" > /etc/dconf/db/local.d/locks/unity
-
 dconf update
 
 # Improve SSH security
-# Usage and argument parsing {{{
-#usage() {
-#        echo "usage: $0 [options]";
-#        echo;
-#        echo "OPTIONS";
-#        echo "  -h      Show this help message";
-#        echo "  -d      Dry run - echo what we want to do, but don't do it";
-#        echo;
-#}
-
-echo "Improving SSH security, this will take a while."
-echo "This is the last step before running a dist-upgrade."
-echo "dist-upgrade is the last step."
+echo "\n... Improving SSH security, this will take a while."
+echo "... This is the last step before running a dist-upgrade."
+echo "... dist-upgrade is the last step.\n"
 
 DRY_RUN=0;
 while getopts 'hd' option; do
@@ -165,16 +157,19 @@ done;
 
 # Fix sshd config if we found it {{{
 if [ "$SSHD_CONFIG" != '' ]; then
+        echo "\n... Fix sshd config if we found it"
         SSHD_CONFIG_DIR="$(dirname "$SSHD_CONFIG")";
         lines_inserted=0;
 
         # Fix key exchange algorithm settings if needed
         grep '^\s*KexAlgorithms\s\+' "$SSHD_CONFIG" &>/dev/null;
         if [ "$?" -eq 0 ]; then
+               echo "\n... Fix key exchange algorithm settings if needed"
                 runcmd sed -i 's/^\(\s*\)KexAlgorithms\s\+.*$/\1KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256/' "$SSHD_CONFIG";
                 sleep 1
         else
                 lines_inserted=$((${lines_inserted} + 1));
+                echo "\n... Fix key exchange algorithm settings if needed"
                 runcmd sed -i "${lines_inserted}i\\KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256" "$SSHD_CONFIG";
                 sleep 1
         fi;
@@ -183,6 +178,7 @@ if [ "$SSHD_CONFIG" != '' ]; then
         MODULI="${SSHD_CONFIG_DIR}/moduli";
         if [ -f "$MODULI" ]; then
                 # Ugly hack for portable in-place awk
+                echo "\n... If the moduli file exists, get rid of any primes less than 2000 bits"
                 runcmd awk '$5 > 2000' "$MODULI" > >(cat <(sleep 1) - > "$MODULI");
                 sleep 1
         else
@@ -192,6 +188,7 @@ if [ "$SSHD_CONFIG" != '' ]; then
 
         # If there's nothing left in the moduli file (or it didn't exist at all), we should populate it
         if [ "$(stat --printf=%s "$MODULI")" -lt 10 ]; then
+                echo "\n... If there's nothing left in the moduli file (or it didn't exist at all), we should populate it"
                 runcmd rm "$MODULI";
                 runcmd ssh-keygen -q -G "$SSHD_CONFIG_DIR"/moduli.tmp -b 4096
                 runcmd ssh-keygen -T "$MODULI" -f "$SSHD_CONFIG_DIR/moduli.tmp"
@@ -202,15 +199,18 @@ if [ "$SSHD_CONFIG" != '' ]; then
         # Force v2 protocol
         grep '^\s*Protocol\s\+' "$SSHD_CONFIG" &>/dev/null;
         if [ "$?" -eq 0 ]; then
+                echo "\n... Force v2 protocol"
                 runcmd sed -i 's/^\(\s*\)Protocol\s\+.*$/\1Protocol 2/' "$SSHD_CONFIG";
                 sleep 1
         else
                 lines_inserted=$((${lines_inserted} + 1));
+                echo "\n... Force v2 protocol"
                 runcmd sed -i "${lines_inserted}iProtocol 2" "$SSHD_CONFIG";
                 sleep 1
         fi;
 
         # Get rid of DSA and ECDSA keys; create RSA and Ed25519 if they don't exist
+        echo "\n... Get rid of DSA and ECDSA keys; create RSA and Ed25519 if they don't exist"
         runcmd sed -i '/^\s*HostKey/d' "$SSHD_CONFIG";
         sleep 1
         lines_inserted=$((${lines_inserted} + 1));
@@ -239,10 +239,12 @@ if [ "$SSHD_CONFIG" != '' ]; then
         # Limit symmetric ciphers to good modern ones
         grep '^\s*Ciphers\s\+' "$SSHD_CONFIG" &>/dev/null;
         if [ "$?" -eq 0 ]; then
+                echo "\n... Limit symmetric ciphers to good modern ones"
                 runcmd sed -i 's/^\(\s*\)Ciphers\s\+.*$/\1Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr/' "$SSHD_CONFIG";
                 sleep 1
         else
                 lines_inserted=$((${lines_inserted} + 1));
+                echo "\n... Limit symmetric ciphers to good modern ones"
                 runcmd sed -i "${lines_inserted}iCiphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr" "$SSHD_CONFIG";
                 sleep 1
         fi;
@@ -250,10 +252,12 @@ if [ "$SSHD_CONFIG" != '' ]; then
         # Limit MAC algos to good modern ones with long keys, ETM only
         grep '^\s*MACs\s\+' "$SSHD_CONFIG" &>/dev/null;
         if [ "$?" -eq 0 ]; then
+                echo "\n... Limit MAC algos to good modern ones with long keys, ETM only"
                 runcmd sed -i 's/^\(\s*\)MACs\s\+.*$/\1MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-ripemd160-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,hmac-ripemd160,umac-128@openssh.com/' "$SSHD_CONFIG";
                 sleep 1
         else
                 lines_inserted=$((${lines_inserted} + 1));
+                echo "\n... Limit MAC algos to good modern ones with long keys, ETM only"
                 runcmd sed -i "${lines_inserted}iMACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-ripemd160-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,hmac-ripemd160,umac-128@openssh.com" "$SSHD_CONFIG";
                 sleep 1
         fi;
@@ -261,9 +265,11 @@ fi;
 # }}}
 
 # Some settings
+echo "\n... Disable logout, restart and shutdown prompts."
 $GS set com.canonical.indicator.session suppress-logout-restart-shutdown true
 
 # Create dist-upgrade script in home dir.
+echo "\n... Create dist-upgrade script in home dir."
 echo "echo ... Update [Start]" > ~/dist-upgrade
 echo "sudo apt-get update" >> ~/dist-upgrade
 echo "echo ... Update [Done]" >> ~/dist-upgrade
@@ -282,6 +288,7 @@ echo "echo ... Dist-upgrade [Done]" >> ~/dist-upgrade
 chmod +x ~/dist-upgrade
 
 # Upgrade the system
+echo "\n... Upgrade the system"
 apt-get dist-upgrade -y
 
-echo -e "\nPOST INSTALLATION COMPLETE"
+echo -e "\nPOST INSTALLATION COMPLETE\n"
