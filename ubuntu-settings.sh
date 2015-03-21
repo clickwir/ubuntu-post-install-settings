@@ -61,7 +61,7 @@ fi
 
 # Refresh the package list
 echo "\n...Refresh the package list"
-apt-get update
+#apt-get update
 
 # Install extra packages
 echo "\n... Install extra packages"
@@ -99,34 +99,23 @@ echo "... This is the last step before running a dist-upgrade."
 echo "... dist-upgrade is the last step.\n"
 
 # Try to find config files {{{
-SSHD_CONFIG_POSSIBILITIES="/etc/ssh/sshd_config"
-SSH_CONFIG_POSSIBILITIES="/etc/ssh/ssh_config"
+SSH_CONFIG_DIR="/etc/ssh"
 SSHD_CONFIG="/etc/ssh/sshd_config";
 SSH_CONFIG="/etc/ssh/ssh_config";
 
 # Fix sshd config
         echo "\n... Fix sshd config"
-        SSHD_CONFIG_DIR="$(dirname "$SSHD_CONFIG")";
         lines_inserted=0;
 
         # Fix key exchange algorithm settings if needed
         grep '^\s*KexAlgorithms\s\+' "$SSHD_CONFIG" &>/dev/null;
                 echo "\n... Fix key exchange algorithm settings if needed"
                 sed -i 's/^\(\s*\)KexAlgorithms\s\+.*$/\1KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256/' "$SSHD_CONFIG";
-                sleep 1
+            sleep 1
 
         # If the moduli file exists, get rid of any primes less than 2000 bits
-        MODULI="${SSHD_CONFIG_DIR}/moduli";
-        if [ -f "$MODULI" ]; then
-                # Ugly hack for portable in-place awk
-                echo "\n... If the moduli file exists, get rid of any primes less than 2000 bits"
-                awk '$5 > 2000' "$MODULI" > >(cat <(sleep 1) - > "$MODULI");
-                sleep 1
-        else
-                touch "$MODULI";
-                sleep 1
-        fi;
-
+	rm "$SSH_CONFIG_DIR/moduli";
+    
         # If there's nothing left in the moduli file (or it didn't exist at all), we should populate it
         if [ "$(stat --printf=%s "$MODULI")" -lt 10 ]; then
                 echo "\n... If there's nothing left in the moduli file (or it didn't exist at all), we should populate it"
@@ -148,25 +137,25 @@ SSH_CONFIG="/etc/ssh/ssh_config";
         sed -i '/^\s*HostKey/d' "$SSHD_CONFIG";
         sleep 1
         lines_inserted=$((${lines_inserted} + 1));
-        sed -i "${lines_inserted}iHostKey ${SSHD_CONFIG_DIR}/ssh_host_ed25519_key" "$SSHD_CONFIG";
+        sed -i "${lines_inserted}iHostKey ${SSHD_CONFIG}/ssh_host_ed25519_key" "$SSHD_CONFIG";
         sleep 1
         lines_inserted=$((${lines_inserted} + 1));
-        sed -i "${lines_inserted}iHostKey ${SSHD_CONFIG_DIR}/ssh_host_rsa_key" "$SSHD_CONFIG";
+        sed -i "${lines_inserted}iHostKey ${SSHD_CONFIG}/ssh_host_rsa_key" "$SSHD_CONFIG";
         sleep 1
-        rm -f "${SSHD_CONFIG_DIR}/ssh_host_key{,.pub}";
+        rm -f "${SSHD_CONFIG}/ssh_host_key{,.pub}";
         sleep 1
-        rm -f "${SSHD_CONFIG_DIR}/ssh_host_dsa_key{,.pub}";
+        rm -f "${SSHD_CONFIG}/ssh_host_dsa_key{,.pub}";
         sleep 1
-        rm -f "${SSHD_CONFIG_DIR}/ssh_host_ecdsa_key{,.pub}";
+        rm -f "${SSHD_CONFIG}/ssh_host_ecdsa_key{,.pub}";
         sleep 1
-        rm -f "${SSHD_CONFIG_DIR}/ssh_host_rsa_key{,.pub}";
+        rm -f "${SSHD_CONFIG}/ssh_host_rsa_key{,.pub}";
         sleep 1
-        if [ ! -f "${SSHD_CONFIG_DIR}/ssh_host_ed25519_key" ] || [ ! -f "${SSHD_CONFIG_DIR}/ssh_host_ed25519_key.pub" ]; then
-                ssh-keygen -t ed25519 -f "${SSHD_CONFIG_DIR}/ssh_host_ed25519_key" < /dev/null;
+        if [ ! -f "${SSHD_CONFIG}/ssh_host_ed25519_key" ] || [ ! -f "${SSHD_CONFIG}/ssh_host_ed25519_key.pub" ]; then
+                ssh-keygen -t ed25519 -f "${SSHD_CONFIG}/ssh_host_ed25519_key" < /dev/null;
                 sleep 1
         fi;
-        if [ ! -f "${SSHD_CONFIG_DIR}/ssh_host_rsa_key" ] || [ ! -f "${SSHD_CONFIG_DIR}/ssh_host_rsa_key.pub" ]; then
-                ssh-keygen -t rsa -b 4096 -f "${SSHD_CONFIG_DIR}/ssh_host_rsa_key" < /dev/null;
+        if [ ! -f "${SSHD_CONFIG}/ssh_host_rsa_key" ] || [ ! -f "${SSHD_CONFIG}/ssh_host_rsa_key.pub" ]; then
+                ssh-keygen -t rsa -b 4096 -f "${SSHD_CONFIG}/ssh_host_rsa_key" < /dev/null;
                 sleep 1
         fi;
 
